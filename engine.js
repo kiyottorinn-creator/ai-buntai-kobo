@@ -148,8 +148,7 @@
     const chars = joined.replace(/[\s\n]/g, '').length;
 
     // 自分の言い回しの見本帳（ひらがな3字）
-    const gram5 = Array.from(new Set(kanaGrams(joined, 3)));
-    const gset = new Set(gram5);
+    const gram3 = Array.from(new Set(kanaGrams(joined, 3)));
 
     // 交差検証: 1本を隠して残りで測ると、自分の文でも何割が「見たことがない」になるか
     let unseen = null;
@@ -213,7 +212,7 @@
       ender_seen: Object.keys(enders),
       heads: topN(heads, 12),
       unseen: unseen,
-      _gram5: gram5, // 照合用の見本帳（表示はしない）
+      _gram3: gram3, // 照合用の見本帳（表示はしない）
     };
   }
 
@@ -263,12 +262,12 @@
       if (s.text.length > longLimit) flags.push({ type: 'yellow', why: '一文' + s.text.length + '字。自分の上位1割は' + longLimit + '字' });
       const hit = aiPhrases.filter((p) => s.text.indexOf(p) >= 0);
       if (hit.length) flags.push({ type: 'yellow', why: 'AIに多く人に少ない言い回し: ' + hit.join('・') });
-      if (karte.unseen && karte._gram5) {
+      if (karte.unseen && karte._gram3) {
         const gs = kanaGrams(s.text, 3);
         if (gs.length >= 3) {
-          const gset2 = karte.__set || (karte.__set = new Set(karte._gram5));
+          const seenGrams = karte.__set || (karte.__set = new Set(karte._gram3));
           let miss = 0;
-          gs.forEach((g) => { if (!gset2.has(g)) miss++; });
+          gs.forEach((g) => { if (!seenGrams.has(g)) miss++; });
           const rate = miss / gs.length;
           if (rate > karte.unseen.p90) {
             flags.push({ type: 'red', why: 'つなぎ方の' + Math.round(rate * 100) + '%が自分の過去記事に無い形。自分の文でも上位1割は' + Math.round(karte.unseen.p90 * 100) + '%' });
