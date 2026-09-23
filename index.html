@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文体工房 — 自分の過去記事から文体カルテを作り、AIの下書きを自分の文に戻す</title>
+<style>
+  :root { --red:#d93a2b; --redbg:#fde3df; --yel:#b88600; --yelbg:#fff3c4; --blu:#1f6feb; --blubg:#e3edfd;
+          --gray:#8a8f98; --ink:#1f2328; --line:#e3e6ea; --ok:#1a7f4b; --okbg:#dff5e8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif; color:var(--ink); background:#f7f8fa; line-height:1.75; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:18px 20px; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:6px 0 0; color:#57606a; font-size:13px; max-width:900px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+  section { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; }
+  h2 { font-size:16px; margin:0 0 6px; }
+  h2 .step { display:inline-block; background:var(--ink); color:#fff; border-radius:999px; width:22px; height:22px; text-align:center; font-size:13px; line-height:22px; margin-right:6px; }
+  .lead { font-size:13px; color:#57606a; margin:0 0 10px; }
+  textarea { width:100%; min-height:150px; padding:10px; border:1px solid #cfd4da; border-radius:8px; font:inherit; font-size:14px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0; }
+  button { font:inherit; font-size:14px; padding:8px 14px; border-radius:8px; border:1px solid #cfd4da; background:#fff; cursor:pointer; }
+  button.main { background:var(--ink); color:#fff; border-color:var(--ink); font-weight:700; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:860px){ .grid2 { grid-template-columns:1fr; } }
+  .stats { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .stat { border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:13px; background:#fbfcfd; }
+  .stat b { font-size:19px; margin-right:3px; }
+  .view { white-space:pre-wrap; font-size:14px; border:1px solid var(--line); border-radius:8px; padding:12px; max-height:520px; overflow:auto; background:#fff; }
+  mark.r { background:var(--redbg); border-bottom:2px solid var(--red); }
+  mark.y { background:var(--yelbg); }
+  mark.b { background:var(--blubg); border-bottom:2px dotted var(--blu); }
+  ul.list { list-style:none; margin:0; padding:0; max-height:520px; overflow:auto; }
+  ul.list li { border-bottom:1px solid var(--line); padding:8px 2px; font-size:13px; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px; }
+  .tag.r { background:var(--redbg); color:var(--red); }
+  .tag.y { background:var(--yelbg); color:#7a5a00; }
+  .tag.b { background:var(--blubg); color:var(--blu); }
+  .why { color:#57606a; display:block; font-size:12px; }
+  .verdict { padding:12px 14px; border-radius:8px; font-weight:700; font-size:15px; margin:10px 0; }
+  .verdict.stop { background:var(--redbg); color:var(--red); }
+  .verdict.fix { background:var(--yelbg); color:#7a5a00; }
+  .verdict.go { background:var(--okbg); color:var(--ok); }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th,td { border:1px solid var(--line); padding:5px 8px; text-align:left; }
+  th { background:#f4f6f8; font-weight:700; width:38%; }
+  .note { font-size:12px; color:#57606a; }
+  .pill { display:inline-block; background:#eceef1; border-radius:999px; padding:1px 9px; font-size:12px; margin:2px 4px 2px 0; }
+  footer { max-width:1100px; margin:0 auto; padding:10px 16px 50px; font-size:12px; color:#57606a; }
+  code { background:#f4f6f8; padding:1px 5px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>文体工房</h1>
+  <p>自分の過去記事を貼ると、一文の長さ・文末の形・漢字の割合を数えた<b>文体カルテ</b>を作ります。
+  そのカルテでAIの下書きを見ると、<b style="color:#d93a2b">自分が使わない文末は赤</b>、
+  <b style="color:#7a5a00">長すぎる文とAIに多い言い回しは黄</b>、
+  <b style="color:#1f6feb">漢字が自分より多い文は青</b>で出ます。
+  文章はこのページの外に送りません（通信ゼロ）。AIが書いたかを当てる道具ではありません。</p>
+</header>
+<main>
+
+<section>
+  <h2><span class="step">1</span>自分の過去記事を貼る</h2>
+  <p class="lead">3本以上・合計4,000字以上を目安に。区切りは <code>---</code> の行。会話文（「〜」で終わる文）が多い記事は、文末の数え方が会話に引っ張られます。</p>
+  <textarea id="past" placeholder="過去記事1の本文&#10;---&#10;過去記事2の本文&#10;---&#10;過去記事3の本文"></textarea>
+  <div class="row">
+    <button class="main" id="mk">文体カルテを作る</button>
+    <button id="smpPast">見本を入れる（青空文庫の随筆3本）</button>
+    <button id="save">この端末に保存</button>
+    <button id="load">保存したカルテを読む</button>
+    <button id="dl">カルテを書き出す（JSON）</button>
+    <span class="note" id="karteState">まだカルテがありません</span>
+  </div>
+  <div id="karteOut"></div>
+</section>
+
+<section>
+  <h2><span class="step">2</span>AIの下書きを貼って、ズレを見る</h2>
+  <p class="lead">ChatGPTなどで作った下書きをそのまま貼ってください。色が付いた文だけを直せば済みます。</p>
+  <textarea id="draft" placeholder="AIに書かせた下書きを貼る"></textarea>
+  <div class="row">
+    <button class="main" id="chk" disabled>カルテと照合する</button>
+    <button id="smpDraft">見本を入れる（AIの下書き）</button>
+    <button id="copyPrompt" disabled>直しの指示文をコピー</button>
+    <span class="note">指示文はAIのチャット画面に貼って使います</span>
+  </div>
+  <div id="checkOut"></div>
+</section>
+
+<section>
+  <h2><span class="step">3</span>直った文を貼り戻して、事実が動いていないか見る</h2>
+  <p class="lead">AIの返事をそのまま貼ります。数字・固有名詞が増えたり消えたりしていないかを照合します。ここは機械が見ます。意味が変わっていないかは、最後にあなたが読んでください。</p>
+  <textarea id="fixed" style="min-height:120px" placeholder="AIから返ってきた番号つきの文を貼る"></textarea>
+  <div class="row"><button class="main" id="verify" disabled>元の文と照合する</button></div>
+  <div id="verifyOut"></div>
+</section>
+
+<footer>
+  文体工房 — このページは1つのHTMLファイルで動きます。入力した文章は保存も送信もしません（「この端末に保存」を押したときだけ、カルテの数値だけがこの端末に残ります）。
+</footer>
+</main>
+<script src="engine.js"></script>
+<script src="ai_phrases.js"></script>
+<script src="samples.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
