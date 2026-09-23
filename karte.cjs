@@ -7,7 +7,7 @@
    .md .txt .markdown を読む。見出し・コードブロック・画像・リンク記法は落とす。
 */
 const fs = require('fs'), path = require('path');
-const E = require(path.join(__dirname, 'page/engine.js'));
+const E = require(path.join(__dirname, 'engine.js'));
 const a = process.argv.slice(2);
 const opt = (k, d) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : d; };
 
